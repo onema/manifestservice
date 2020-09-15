@@ -1,0 +1,48 @@
+#
+# This file is part of the ONEMA onema Package.
+# For the full copyright and license information,
+# please view the LICENSE file that was distributed
+# with this source code.
+#
+# copyright (c) 2018, Juan Manuel Torres (http://onema.io)
+#
+# @author Juan Manuel Torres <software@onema.io>
+#
+service: manifest-service
+
+provider:
+  name: aws
+  runtime: java11
+  profile: ${opt:profile, 'default'}
+  timeout: 60
+  versionFunctions: false
+  memorySize: 2048
+  stage: dev
+  region: us-east-1
+  environment:
+    ORIGIN: s3://ones-test-bucket.s3.amazonaws.com/origin/
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        - "arn:aws:s3:::ones-test-bucket/*"
+        - "arn:aws:s3:::ones-test-bucket"
+
+package:
+  artifact: build/libs/manifestservice-0.0.1-SNAPSHOT-all.jar
+
+functions:
+  master:
+    handler: io.onema.manifestservice.StreamLambdaHandler::handleRequest
+    events:
+      - http:
+          path: master.m3u8
+          method: get
+      - http:
+          path: media/{mediaName+}
+          method: get
+      - http:
+          path: segment/{segmentName+}
+          method: get

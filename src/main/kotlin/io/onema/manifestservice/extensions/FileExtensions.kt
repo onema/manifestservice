@@ -53,7 +53,6 @@ fun FileObject.isRendition(renditionNames: List<String>): Boolean =
  * @return list of strings representing the rendition names
  */
 fun List<FileObject>.renditionNames(): List<String> {
-    File("").nameWithoutExtension
     val tsFiles = this.filter { it.name.extension == "ts" }
     return tsFiles.map { it.nameWithoutExtension }
 }
@@ -61,7 +60,7 @@ fun List<FileObject>.renditionNames(): List<String> {
 /**
  * Filters and loads the rendition metadata from the list of files.
  *
- * Returns a map of rendition names to segment data.
+ * Returns a map of rendition names to stream data.
  *
  * @return Map<String, StreamData>
  */

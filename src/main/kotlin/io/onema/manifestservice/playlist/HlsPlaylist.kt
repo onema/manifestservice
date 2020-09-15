@@ -14,10 +14,9 @@ package io.onema.manifestservice.playlist
 import io.onema.manifestservice.domain.Segment
 import io.onema.manifestservice.domain.StreamData
 
-fun buildMasterPlaylist(renditionKeys: List<String>, renditionMetadata: Map<String, StreamData>): String {
+fun buildMasterPlaylist(renditionMetadata: Map<String, StreamData>): String {
     return playlist {
-        renditionKeys.forEach { name ->
-            val metadata: StreamData = renditionMetadata[name] ?: throw RuntimeException("Unable to find metadata for $name")
+        renditionMetadata.forEach { name, metadata ->
             STREAM_INF(metadata.resolution, metadata.codecs, metadata.bandwidth, metadata.frameRate)
             media(name)
         }

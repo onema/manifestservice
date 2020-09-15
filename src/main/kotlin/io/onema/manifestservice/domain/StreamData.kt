@@ -17,11 +17,11 @@ enum class H264Profiles(val value: Int) {
 
 data class StreamData(
 
+    @JsonProperty("streams")
+    var streams: List<Stream?>? = null,
+
     @JsonProperty("format")
     var format: Format? = null,
-
-    @JsonProperty("streams")
-    var streams: List<Stream?>? = null
 ) {
     val frameRate: Float
         get() {
@@ -52,6 +52,7 @@ data class StreamData(
         get() = format?.bitRate ?: ""
 
     private fun firstVideoStream(): Stream = streams?.first { it?.codecType == "video" } ?: throw RuntimeException("Unable to find video streams")
+
     private fun firstAudioStream(): Stream = streams?.first { it?.codecType == "audio" && it.codecName == "aac" } ?: throw RuntimeException("Unable to find audio streams")
 }
 

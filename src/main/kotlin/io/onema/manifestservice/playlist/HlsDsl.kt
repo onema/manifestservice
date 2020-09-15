@@ -43,7 +43,7 @@ class HlsDsl {
     }
 
     fun media(name: String) {
-        builder.appendLine("/media/$name.m3u8")
+        builder.appendLine("/media/$name")
     }
 
     fun EXTINF(duration: Float) {
@@ -55,7 +55,7 @@ class HlsDsl {
     }
 
     fun segment(renditionId: String) {
-       builder.appendLine("/segment/${renditionId}.ts")
+       builder.appendLine("/segment/${renditionId}")
     }
 
     fun ENDLIST() {
