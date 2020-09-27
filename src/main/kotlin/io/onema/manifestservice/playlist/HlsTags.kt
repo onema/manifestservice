@@ -130,7 +130,7 @@ abstract class Path {
     }
 
     override fun toString(): String  = buildString {
-        append("/video/$name/$type/$rendition")
+        append("$type/$rendition")
     }
 }
 

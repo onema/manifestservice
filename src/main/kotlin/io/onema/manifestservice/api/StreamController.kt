@@ -68,14 +68,14 @@ class StreamController(
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_TYPE, mimeTypeM3U8).body(body)
     }
 
-    @GetMapping("/video/{videoName}/segment/{segmentName}")
+    @GetMapping("/video/{videoName}/media/segment/{segmentName}")
     fun segmentHandler(
         @PathVariable videoName: String,
         @PathVariable segmentName: String,
         @RequestHeader("range") range: String
     ): ResponseEntity<ByteArray> {
 
-        log.info("/video/$videoName/segment/$segmentName $range")
+        log.info("/video/$videoName/media/segment/$segmentName $range")
         val (start, end) = range.splitRange()
         val files: List<FileObject> = dir.first { it.nameWithoutExtension == videoName }.children.toList()
         val file = files.findVideoByRenditionId(segmentName)
