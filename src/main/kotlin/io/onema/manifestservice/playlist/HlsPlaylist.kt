@@ -14,22 +14,33 @@ package io.onema.manifestservice.playlist
 import io.onema.manifestservice.domain.Segment
 import io.onema.manifestservice.domain.StreamData
 
-fun buildMasterPlaylist(renditionMetadata: Map<String, StreamData>): String {
-    return playlist {
-        renditionMetadata.forEach { name, metadata ->
-            STREAM_INF(metadata.resolution, metadata.codecs, metadata.bandwidth, metadata.frameRate)
-            media(name)
+fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, StreamData>): String {
+    return master playlist {
+        version value 5
+        renditionMetadata.forEach { renditionId, md ->
+            stream {
+                streamInf resolution md.resolution codecs md.codecs bandwidth md.bandwidth frameRate md.frameRate
+                info name videoName rendition renditionId
+            }
         }
     }
 }
 
-fun buildMediaPlaylist(segments: List<Segment>, renditionId: String): String {
-     return mediaPlaylist {
+fun buildMediaPlaylist(videoName: String, segments: List<Segment>, renditionId: String): String {
+    return media playlist {
+        version value 5
+        type value PlaylistTypeEnum.VOD
+        mediaSequence value 0
+        targetDuration value 6
+
         segments.forEach { segment ->
-            EXTINF(segment.duration())
-            BYTERANGE(segment.length, segment.position)
-            segment(renditionId)
+            add segment {
+                extInf duration segment.duration()
+                byteRange length segment.length position segment.position
+                info name videoName rendition renditionId
+            }
         }
+        method value "NONE"
     }
 }
 
