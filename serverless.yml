@@ -14,35 +14,74 @@ provider:
   name: aws
   runtime: java11
   profile: ${opt:profile, 'default'}
-  timeout: 60
+  timeout: 35
   versionFunctions: false
-  memorySize: 2048
+  memorySize: 1028
   stage: dev
   region: us-east-1
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
   environment:
-    ORIGIN: s3://ones-test-bucket.s3.amazonaws.com/origin/
+    LOG_LEVEL: INFO
+    ORIGIN:
+      Fn::Join: [ "", ["s3://", Fn::GetAtt: [ VideosS3Bucket, DomainName ], "/"] ]
+    TABLE_NAME:
+      Ref: VideoTable
 
   iamRoleStatements:
     - Effect: Allow
       Action:
         - s3:*
       Resource:
-        - "arn:aws:s3:::ones-test-bucket/*"
-        - "arn:aws:s3:::ones-test-bucket"
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideosS3Bucket, Arn ], "*" ] ]
+        - Fn::GetAtt: [ VideosS3Bucket, Arn ]
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+        - dynamodb:Query
+        - dynamodb:Scan
+      Resource:
+        - Fn::GetAtt: [ VideoTable, Arn ]
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
 
 package:
   artifact: build/libs/manifestservice-0.0.1-SNAPSHOT-all.jar
 
 functions:
   master:
+#    provisionedConcurrency: 5
     handler: io.onema.manifestservice.StreamLambdaHandler::handleRequest
     events:
       - http:
-          path: master.m3u8
+          path: "video/{videoName}/master"
           method: get
       - http:
-          path: media/{mediaName+}
+          path: "video/{videoName}/media/{mediaName}"
           method: get
       - http:
-          path: segment/{segmentName+}
+          path: "video/{videoName}/media/segment/{segmentName}"
           method: get
+
+resources:
+  Resources:
+    VideoTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    VideosS3Bucket:
+      Type: AWS::S3::Bucket
