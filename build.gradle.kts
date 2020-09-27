@@ -32,19 +32,20 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.github.abashev:vfs-s3:4.3.1")
+    implementation("com.github.abashev:vfs-s3:4.3.2")
 
     implementation("com.amazonaws:aws-lambda-java-events:3.2.0")
     implementation("com.amazonaws:aws-lambda-java-core:1.2.1")
-    implementation("com.amazonaws:aws-lambda-java-log4j2:1.2.0")
     implementation("com.amazonaws:aws-java-sdk-dynamodb:1.11.771")
 
+    implementation("io.symphonia:lambda-logging:1.0.3")
     implementation("com.amazonaws.serverless:aws-serverless-java-container-springboot2:1.5.1")
 
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
+    implementation(kotlin("script-runtime"))
 }
 
 dependencyManagement {
