@@ -14,7 +14,7 @@ package io.onema.manifestservice.playlist
 class MasterPlaylist {
     val version = Version()
     val add = this
-    private var streams = mutableListOf<MasterStream>()
+    private val streams = mutableListOf<MasterStream>()
 
     infix fun stream(block: MasterStream.() -> Unit) {
         streams.add(MasterStream().apply(block))

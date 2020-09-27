@@ -3,13 +3,13 @@ package io.onema.manifestservice.playlist
 import io.onema.manifestservice.playlist.MediaPlaylist.MediaSegment
 
 class MediaPlaylist {
-    var version: Version = Version()
-    var type: PlaylistType = PlaylistType()
-    var mediaSequence: MediaSequence = MediaSequence()
-    var targetDuration: TargetDuration = TargetDuration()
-    var method: Key = Key() name "METHOD" value "NONE"
+    val version: Version = Version()
+    val type: PlaylistType = PlaylistType()
+    val mediaSequence: MediaSequence = MediaSequence()
+    val targetDuration: TargetDuration = TargetDuration()
+    val method: Key = Key() name "METHOD" value "NONE"
 
-    private var segments = mutableListOf<MediaSegment>()
+    private val segments = mutableListOf<MediaSegment>()
 
     val add = this
 
