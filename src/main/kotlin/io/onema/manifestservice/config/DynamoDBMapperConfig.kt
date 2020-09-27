@@ -11,6 +11,8 @@
 
 package io.onema.manifestservice.config
 
+import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig
@@ -25,11 +27,24 @@ class DynamoDBMapperConfig {
     @Value("\${TABLE_NAME}")
     lateinit var tableName: String
 
+    @Value("\${DYNAMODB_ENDPOINT:#{null}}")
+    var dynamoDBEndpoint: String? = null
+
+    @Value("\${AWS_REGION}")
+    lateinit var awsRegion: String
+
     @Bean
     fun dynamoDBMapper(): DynamoDBMapper {
-        val tableOverride = TableNameOverride.withTableNameReplacement(tableName)
+        val tableOverride: TableNameOverride = TableNameOverride.withTableNameReplacement(tableName)
+        val client: AmazonDynamoDB = if(dynamoDBEndpoint.isNullOrBlank()) {
+            AmazonDynamoDBClientBuilder.defaultClient()
+        } else {
+            AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(
+                AwsClientBuilder.EndpointConfiguration(dynamoDBEndpoint, awsRegion))
+                .build()
+        }
         return DynamoDBMapper(
-            AmazonDynamoDBClientBuilder.defaultClient(),
+            client,
             DynamoDBMapperConfig.builder()
                 .withTableNameOverride(tableOverride).build()
         )
