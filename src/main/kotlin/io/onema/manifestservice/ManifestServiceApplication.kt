@@ -2,7 +2,7 @@ package io.onema.manifestservice
 
 import io.onema.manifestservice.api.StreamController
 import io.onema.manifestservice.config.OriginConfig
-import org.springframework.beans.factory.annotation.Value
+import io.onema.manifestservice.domain.DynamoDBTable
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
@@ -14,12 +14,8 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
 
 @SpringBootApplication
-@Import(value = [StreamController::class, OriginConfig::class])
+@Import(value = [StreamController::class, OriginConfig::class, DynamoDBTable::class])
 class ManifestServiceApplication : SpringBootServletInitializer() {
-
-    // silence console logging
-    @Value("\${logging.level.root:OFF}")
-    lateinit var message: String
 
     @Bean
     fun handlerMapping(): HandlerMapping = RequestMappingHandlerMapping()

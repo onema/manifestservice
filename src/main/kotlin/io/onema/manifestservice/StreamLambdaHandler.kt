@@ -3,30 +3,29 @@ package io.onema.manifestservice
 import com.amazonaws.serverless.proxy.model.AwsProxyRequest
 import com.amazonaws.serverless.proxy.model.AwsProxyResponse
 import com.amazonaws.serverless.proxy.spring.SpringBootLambdaContainerHandler
+import com.amazonaws.serverless.proxy.spring.SpringBootProxyHandlerBuilder
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+
 class StreamLambdaHandler : RequestStreamHandler {
     companion object {
         private val log = LoggerFactory.getLogger(StreamLambdaHandler::class.java)
-        val mapper = jacksonObjectMapper()
-
 
         private lateinit var handler: SpringBootLambdaContainerHandler<AwsProxyRequest, AwsProxyResponse>
 
         init {
             val result = runCatching {
-                handler = SpringBootLambdaContainerHandler.getAwsProxyHandler(ManifestServiceApplication::class.java)
-//                handler = SpringBootProxyHandlerBuilder<AwsProxyRequest>()
-//                    .defaultProxy()
-//                    .asyncInit()
-//                    .springBootApplication(ManifestServiceApplication::class.java)
-//                    .buildAndInitialize()
+//                handler = SpringBootLambdaContainerHandler.getAwsProxyHandler(ManifestServiceApplication::class.java)
+                handler = SpringBootProxyHandlerBuilder<AwsProxyRequest>()
+                    .defaultProxy()
+                    .asyncInit()
+                    .springBootApplication(ManifestServiceApplication::class.java)
+                    .buildAndInitialize()
             }
 
             if (result.isFailure) {
