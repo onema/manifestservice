@@ -16,7 +16,7 @@ import io.onema.manifestservice.domain.StreamData
 
 fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, StreamData>): String {
     return master playlist {
-        version value 5
+        version set 5
         renditionMetadata.forEach { renditionId, md ->
             stream {
                 streamInf resolution md.resolution codecs md.codecs bandwidth md.bandwidth frameRate md.frameRate
@@ -28,10 +28,10 @@ fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, Stream
 
 fun buildMediaPlaylist(videoName: String, segments: List<Segment>, renditionId: String): String {
     return media playlist {
-        version value 5
-        type value PlaylistTypeEnum.VOD
-        mediaSequence value 0
-        targetDuration value 6
+        version set 5
+        type set PlaylistTypeEnum.VOD
+        mediaSequence set 0
+        targetDuration set 6
 
         segments.forEach { segment ->
             add segment {

@@ -53,9 +53,6 @@ class StreamController(
         log.info("/video/$videoName/master")
         val renditionMetadata = mapper.renditionMetadata(videoName)
         val body = buildMasterPlaylist(videoName, renditionMetadata)
-        master playlist {
-            version value 5
-        }
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_TYPE, mimeTypeM3U8).body(body)
     }
 

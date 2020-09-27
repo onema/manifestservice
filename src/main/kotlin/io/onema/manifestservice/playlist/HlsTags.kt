@@ -22,7 +22,7 @@ abstract class ExtX : HlsTag() {
 abstract class SingleValueExtX<T> : ExtX() {
     open var value: T? = null
 
-    infix fun value(value: T) {
+    infix fun set(value: T) {
         this.value = value
     }
 
