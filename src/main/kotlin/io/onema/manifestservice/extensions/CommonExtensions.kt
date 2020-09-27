@@ -11,10 +11,18 @@
 
 package io.onema.manifestservice.extensions
 
+import java.util.*
+
 fun Int?.hex(): String = Integer.toHexString(this ?: 0)
 
-fun String.splitRange(): List<Int> = this
+fun Int.pad(): String = this.toString().padStart(12, '0')
+
+fun String.splitRange(): List<Long> = this
     .split('=')
     .last()
     .split('-')
-    .map { it.toInt() }
+    .map { it.toLong() }
+
+fun ByteArray.base64Encode(): String {
+    return Base64.getEncoder().encodeToString(this)
+}
