@@ -7,7 +7,3 @@ Simple streaming service build on top of Kolin, Spring boot, AWS Lambda, API Gat
 
 ## Setup
 #### Coming soon ...
-
-
-
-
