@@ -41,6 +41,9 @@ dependencies {
     implementation("io.symphonia:lambda-logging:1.0.3")
     implementation("com.amazonaws.serverless:aws-serverless-java-container-springboot2:1.5.1")
 
+    // HLS DSL
+    implementation("io.onema:playlist-dsl:0.1.0")
+
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

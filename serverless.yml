@@ -85,3 +85,9 @@ resources:
 
     VideosS3Bucket:
       Type: AWS::S3::Bucket
+
+  Outputs:
+    VideoBucketSyncUrl:
+      Value:
+        Fn::Join: [ "", ["s3://", Ref: VideosS3Bucket, "/"] ]
+      Description: ARN of S3 bucket for the forwarding email content
