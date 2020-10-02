@@ -1,7 +1,9 @@
 package io.onema.manifestservice.domain
 
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.onema.manifestservice.extensions.hex
+import io.onema.playlist.hls.StreamInf
 
 enum class H264Profiles(val value: Int) {
     BASELINE(66),
@@ -17,11 +19,11 @@ enum class H264Profiles(val value: Int) {
 
 data class StreamData(
 
+    @JsonProperty("streams")
+    var streams: List<Stream?>? = null,
+
     @JsonProperty("format")
     var format: Format? = null,
-
-    @JsonProperty("streams")
-    var streams: List<Stream?>? = null
 ) {
     val frameRate: Float
         get() {
@@ -48,10 +50,18 @@ data class StreamData(
             return "$videoPart,$audioPart"
         }
 
-    val bandwidth: String
-        get() = format?.bitRate ?: ""
+    val bandwidth: Int
+        get() = format?.bitRate?.toInt() ?: 0
+
+    val streamInf: StreamInf
+        get() = StreamInf()
+            .resolution(this.resolution)
+            .codecs(this.codecs)
+            .bandwidth(this.bandwidth)
+            .frameRate(this.frameRate)
 
     private fun firstVideoStream(): Stream = streams?.first { it?.codecType == "video" } ?: throw RuntimeException("Unable to find video streams")
+
     private fun firstAudioStream(): Stream = streams?.first { it?.codecType == "audio" && it.codecName == "aac" } ?: throw RuntimeException("Unable to find audio streams")
 }
 
@@ -85,95 +95,122 @@ data class Format(
     var size: String? = null,
 
     @JsonProperty("start_time")
-    var startTime: String? = null
-)
+    var startTime: String? = null,
+
+    // "VIDEO#videoName", "METADATA#rendition#FORMAT"
+) : DynamoDBTable()
 
 data class Stream(
 
+    @DynamoDBIgnore
     @JsonProperty("avg_frame_rate")
     var avgFrameRate: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("bit_rate")
     var bitRate: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("bits_per_raw_sample")
     var bitsPerRawSample: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("bits_per_sample")
     var bitsPerSample: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("channel_layout")
     var channelLayout: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("channels")
     var channels: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("chroma_location")
     var chromaLocation: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("closed_captions")
     var closedCaptions: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("codec_long_name")
     var codecLongName: String? = null,
 
     @JsonProperty("codec_name")
     var codecName: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("codec_tag")
     var codecTag: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("codec_tag_string")
     var codecTagString: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("codec_time_base")
     var codecTimeBase: String? = null,
 
     @JsonProperty("codec_type")
     var codecType: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("coded_height")
     var codedHeight: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("coded_width")
     var codedWidth: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("display_aspect_ratio")
     var displayAspectRatio: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("disposition")
     var disposition: Disposition? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("duration")
     var duration: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("duration_ts")
     var durationTs: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("field_order")
     var fieldOrder: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("has_b_frames")
     var hasBFrames: Int? = null,
 
     @JsonProperty("height")
     var height: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("id")
     var id: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("index")
     var index: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("is_avc")
     var isAvc: String? = null,
 
     @JsonProperty("level")
     var level: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("nal_length_size")
     var nalLengthSize: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("pix_fmt")
     var pixFmt: String? = null,
 
@@ -183,33 +220,51 @@ data class Stream(
     @JsonProperty("r_frame_rate")
     var frameRate: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("refs")
     var refs: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("sample_aspect_ratio")
     var sampleAspectRatio: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("sample_fmt")
     var sampleFmt: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("sample_rate")
     var sampleRate: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("start_pts")
     var startPts: Int? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("start_time")
     var startTime: String? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("tags")
     var tags: Tags? = null,
 
+    @DynamoDBIgnore
     @JsonProperty("time_base")
     var timeBase: String? = null,
 
     @JsonProperty("width")
-    var width: Int? = null
-)
+    var width: Int? = null,
+
+    // pk = "VIDEO#$videoName" sk = "METADATA#${width}x${height}#STREAM_VIDEO"
+) : DynamoDBTable() {
+    var isVideo: Boolean
+        get() = codecType == "video"
+        set(value) {}
+
+    var isAudio: Boolean
+        get() = codecType == "audio"
+        set(value) {}
+}
 
 
 data class Disposition(

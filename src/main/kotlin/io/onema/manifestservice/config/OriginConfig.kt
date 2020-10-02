@@ -11,21 +11,21 @@
 
 package io.onema.manifestservice.config
 
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import io.onema.manifestservice.service.FileService
+import io.onema.manifestservice.service.LocalFileService
+import io.onema.manifestservice.service.S3FileService
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileSystemManager
 import org.apache.commons.vfs2.VFS
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.io.ResourceLoader
+import java.lang.RuntimeException
 import java.net.URI
 
 @Configuration
 class OriginConfig {
-
-    @Autowired
-    lateinit var resourceLoader: ResourceLoader
 
     @Value("\${ORIGIN}")
     lateinit var origin: URI
@@ -36,5 +36,14 @@ class OriginConfig {
         val fsManager: FileSystemManager = VFS.getManager()
         val dir: FileObject = fsManager.resolveFile(origin)
         return dir.children.toList()
+    }
+
+    @Bean
+    fun fileService(): FileService {
+        return when(origin.scheme) {
+            "s3" -> S3FileService(AmazonS3ClientBuilder.defaultClient())
+            "file" -> LocalFileService()
+            else -> throw RuntimeException("Scheme ${origin.scheme} is not supported")
+        }
     }
 }

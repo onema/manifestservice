@@ -1,0 +1,93 @@
+#
+# This file is part of the ONEMA onema Package.
+# For the full copyright and license information,
+# please view the LICENSE file that was distributed
+# with this source code.
+#
+# copyright (c) 2018, Juan Manuel Torres (http://onema.io)
+#
+# @author Juan Manuel Torres <software@onema.io>
+#
+service: manifest-service
+
+provider:
+  name: aws
+  runtime: java11
+  profile: ${opt:profile, 'default'}
+  timeout: 35
+  versionFunctions: false
+  memorySize: 1028
+  stage: dev
+  region: us-east-1
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
+  environment:
+    LOG_LEVEL: INFO
+    ORIGIN:
+      Fn::Join: [ "", ["s3://", Fn::GetAtt: [ VideosS3Bucket, DomainName ], "/"] ]
+    TABLE_NAME:
+      Ref: VideoTable
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideosS3Bucket, Arn ], "*" ] ]
+        - Fn::GetAtt: [ VideosS3Bucket, Arn ]
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:GetItem
+        - dynamodb:DeleteItem
+        - dynamodb:Query
+        - dynamodb:Scan
+      Resource:
+        - Fn::GetAtt: [ VideoTable, Arn ]
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
+
+package:
+  artifact: build/libs/manifestservice-0.0.1-SNAPSHOT-all.jar
+
+functions:
+  master:
+#    provisionedConcurrency: 5
+    handler: io.onema.manifestservice.StreamLambdaHandler::handleRequest
+    events:
+      - http:
+          path: "video/{videoName}/master"
+          method: get
+      - http:
+          path: "video/{videoName}/media/{mediaName}"
+          method: get
+      - http:
+          path: "video/{videoName}/media/segment/{segmentName}"
+          method: get
+
+resources:
+  Resources:
+    VideoTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+
+    VideosS3Bucket:
+      Type: AWS::S3::Bucket
+
+  Outputs:
+    VideoBucketSyncUrl:
+      Value:
+        Fn::Join: [ "", ["s3://", Ref: VideosS3Bucket, "/"] ]
+      Description: ARN of S3 bucket for the forwarding email content

@@ -18,8 +18,11 @@ class HlsDsl {
     init {
         with(builder) {
             appendLine("#EXTM3U")
-            appendLine("#EXT-X-VERSION:5")
         }
+    }
+
+    fun VERSION(version: Int) {
+        builder.appendLine("#EXT-X-VERSION:$version")
     }
 
     fun PLAYLIST_TYPE(type: String) {
@@ -42,8 +45,8 @@ class HlsDsl {
         builder.appendLine("""#EXT-X-STREAM-INF:RESOLUTION=$resolution,CODECS="$codecs",BANDWIDTH=$bandwidth,FRAME-RATE=$frameRate""")
     }
 
-    fun media(name: String) {
-        builder.appendLine("/media/$name.m3u8")
+    fun media(videoName: String, name: String) {
+        builder.appendLine("/video/$videoName/media/$name")
     }
 
     fun EXTINF(duration: Float) {
@@ -54,19 +57,19 @@ class HlsDsl {
        builder.appendLine("#EXT-X-BYTERANGE:${length}@${position}")
     }
 
-    fun segment(renditionId: String) {
-       builder.appendLine("/segment/${renditionId}.ts")
+    fun segment(videoName: String, renditionId: String) {
+       builder.appendLine("/video/$videoName/segment/${renditionId}")
     }
 
     fun ENDLIST() {
         builder.appendLine("#EXT-X-ENDLIST")
     }
 
-    fun build(): String = builder.toString()
+    override fun toString(): String = builder.toString()
 }
 
 fun playlist(action: HlsDsl.() -> Unit ): String {
-    return HlsDsl().apply(action).build()
+    return HlsDsl().apply(action).toString()
 }
 
 fun mediaPlaylist(type: String = "VOD", sequence: Int = 0, duration: Int = 6, action: HlsDsl.() -> Unit): String {

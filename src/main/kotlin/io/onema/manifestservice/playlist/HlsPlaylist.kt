@@ -13,24 +13,38 @@ package io.onema.manifestservice.playlist
 
 import io.onema.manifestservice.domain.Segment
 import io.onema.manifestservice.domain.StreamData
+import io.onema.playlist.hls.PlaylistTypeEnum.VOD
+import io.onema.playlist.hls.master
+import io.onema.playlist.hls.media
 
-fun buildMasterPlaylist(renditionKeys: List<String>, renditionMetadata: Map<String, StreamData>): String {
-    return playlist {
-        renditionKeys.forEach { name ->
-            val metadata: StreamData = renditionMetadata[name] ?: throw RuntimeException("Unable to find metadata for $name")
-            STREAM_INF(metadata.resolution, metadata.codecs, metadata.bandwidth, metadata.frameRate)
-            media(name)
+
+fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, StreamData>): String {
+    return master playlist {
+        version set 5
+        renditionMetadata.forEach { renditionId, md ->
+            stream {
+                streamInf resolution md.resolution codecs md.codecs bandwidth md.bandwidth frameRate md.frameRate
+                info name videoName rendition renditionId
+            }
         }
     }
 }
 
-fun buildMediaPlaylist(segments: List<Segment>, renditionId: String): String {
-     return mediaPlaylist {
+fun buildMediaPlaylist(videoName: String, segments: List<Segment>, renditionId: String): String {
+    return media playlist {
+        version set 5
+        type set VOD
+        mediaSequence set 0
+        targetDuration set 6
+
         segments.forEach { segment ->
-            EXTINF(segment.duration())
-            BYTERANGE(segment.length, segment.position)
-            segment(renditionId)
+            add segment {
+                extInf duration segment.duration()
+                byteRange length segment.length position segment.position
+                info name videoName rendition renditionId
+            }
         }
+        method value "NONE"
     }
 }
 

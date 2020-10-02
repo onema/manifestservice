@@ -13,11 +13,12 @@ package io.onema.manifestservice.extensions
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.vfss3.S3FileObject
 import io.onema.manifestservice.domain.FrameData
 import io.onema.manifestservice.domain.Segment
 import io.onema.manifestservice.domain.StreamData
 import org.apache.commons.vfs2.FileObject
-import java.io.File
+import org.apache.commons.vfs2.provider.AbstractFileObject
 
 val mapper = jacksonObjectMapper()
 
@@ -44,7 +45,7 @@ fun FileObject.isFrame(): Boolean =
  * @param renditionNames list of all the available rendition names
  * @return true if it is a json file and the name corresponds to a valid rendition
  */
-fun FileObject.isRendition(renditionNames: List<String>): Boolean =
+infix fun FileObject.isRendition(renditionNames: List<String>): Boolean =
     nameWithoutExtension in renditionNames && name.extension == "json"
 
 /**
@@ -53,7 +54,6 @@ fun FileObject.isRendition(renditionNames: List<String>): Boolean =
  * @return list of strings representing the rendition names
  */
 fun List<FileObject>.renditionNames(): List<String> {
-    File("").nameWithoutExtension
     val tsFiles = this.filter { it.name.extension == "ts" }
     return tsFiles.map { it.nameWithoutExtension }
 }
@@ -61,16 +61,33 @@ fun List<FileObject>.renditionNames(): List<String> {
 /**
  * Filters and loads the rendition metadata from the list of files.
  *
- * Returns a map of rendition names to segment data.
+ * Returns a map of rendition names to stream data.
  *
  * @return Map<String, StreamData>
  */
-fun List<FileObject>.renditionMetadata(): Map<String, StreamData> {
+fun List<FileObject>.renditionMetadata(videoName: String): Map<String, StreamData> {
     val renditionNames = this.renditionNames()
     return this
-        .filter { file ->  file.isRendition(renditionNames) }
-        .map    { file ->  file.metadataMap<StreamData>() }
-        .toMap()
+        .filter { file ->  file isRendition renditionNames }
+        .map    { file ->  file.metadataMap<StreamData>() }.toMap()
+        .mapValues { (key, streamData) ->
+            streamData.apply { updateKeys(videoName, key) }
+        }
+}
+
+fun StreamData.updateKeys(videoName: String, rendition: String) {
+    val pk = "VIDEO#$videoName"
+    this.streams = streams?.map { stream ->
+        stream?.apply {
+            val skPrefix = "METADATA#STREAM_"
+            this.pk = pk
+            this.sk = if(isVideo) skPrefix + "VIDEO#$rendition" else skPrefix + "AUDIO#$rendition"
+        }
+    }
+    this.format = format?.apply {
+        this.pk = pk
+        this.sk = "METADATA#FORMAT#$rendition"
+    }
 }
 
 /**
@@ -85,8 +102,8 @@ fun List<FileObject>.renditionSegments(metaData: Map<String, StreamData>): Map<S
         .filter { file ->  file.isFrame() }
         .map    { file ->  file.metadataMap<FrameData>() }.toMap()
         .mapValues { (key, frameData) ->
-            val streamData = metaData[key] ?: throw RuntimeException("Metadata for $key doesn't exist")
-            frameData.buildUpSegments(streamData)
+            val streamData = metaData[key] ?: throw RuntimeException("Metadata for $key doesn't exist, available values ${metaData.keys.joinToString(", ")}")
+            frameData.buildUpSegments(streamData, key)
         }
 }
 
@@ -100,6 +117,7 @@ fun List<FileObject>.findVideoByRenditionId(renditionId: String): FileObject? {
  *
  * @return ByteArray
  */
+
 fun FileObject.segment(start: Int, end: Int): ByteArray {
     val length = end - start + 1
     val bytes = ByteArray(length)

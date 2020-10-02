@@ -1,18 +1,26 @@
 package io.onema.manifestservice.domain
 
 
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey
 import com.fasterxml.jackson.annotation.JsonProperty
+import io.onema.manifestservice.extensions.pad
+import java.lang.RuntimeException
 
 data class FrameData(@JsonProperty("frames") var frames: List<Frame> = listOf()) {
 
-    fun buildUpSegments(streamData: StreamData): List<Segment> {
+    fun buildUpSegments(streamData: StreamData, rendition: String): List<Segment> {
         val sortedFrames = frames
             .filter   { frame ->  frame.mediaType == "video" }
             .sortedBy { frame ->  frame.pktPos?.toInt() ?: 0 }
-        return tailrecBuildUpSegments(Segment(frameRate = streamData.frameRate), sortedFrames)
+
+        val pk = streamData.format?.pk ?: throw RuntimeException("PK is not available in stream data")
+        val sk = "SEGMENT#$rendition#POSITION#"
+        val startSegment = Segment(frameRate = streamData.frameRate, pk = pk, sk = sk + 0.pad())
+        return tailrecBuildUpSegments(pk, sk, startSegment, sortedFrames)
     }
 
-    private tailrec fun tailrecBuildUpSegments(segment: Segment, frames: List<Frame>, segs: List<Segment> = listOf(), lastFramePosition: Int = 0): List<Segment> {
+    private tailrec fun tailrecBuildUpSegments(pk: String, sk: String, segment: Segment, frames: List<Frame>, segs: List<Segment> = listOf(), lastFramePosition: Int = 0): List<Segment> {
         val frame = frames.firstOrNull()
         val tail = frames.drop(1)
 
@@ -22,7 +30,7 @@ data class FrameData(@JsonProperty("frames") var frames: List<Frame> = listOf())
             // Skip the first frame of the video
             if (segment.frames == 0) {
                 val newSegment = segment.copy(frames = segment.frames + 1)
-                tailrecBuildUpSegments(newSegment, tail, segs, lastFramePosition)
+                tailrecBuildUpSegments(pk, sk, newSegment, tail, segs, lastFramePosition)
 
                 // set the length for the next key frame once we know the first key frame
             } else {
@@ -31,15 +39,15 @@ data class FrameData(@JsonProperty("frames") var frames: List<Frame> = listOf())
                 segment.length = frame.packagePosition() - segment.position
 
                 // Start a new segment
-                val newSegment = Segment(frameRate = segment.frameRate, position = frame.packagePosition(), frames = 1)
+                val newSegment = Segment(frameRate = segment.frameRate, position = frame.packagePosition(), frames = 1, pk = pk, sk = sk + frame.packagePosition().pad())
 
                 // Add the completed segment to the list and continue to nest iteration
-                tailrecBuildUpSegments(newSegment, tail, segs + segment, frame.packagePosition())
+                tailrecBuildUpSegments(pk, sk, newSegment, tail, segs + segment, frame.packagePosition())
             }
         } else if(frame != null) {
 
             // Continue iterations keeping track of the frames per segment so we can generate the duration and the last frame segment position
-            tailrecBuildUpSegments(segment.copy(frames = segment.frames + 1), tail, segs, frame.packagePosition())
+            tailrecBuildUpSegments(pk, sk, segment.copy(frames = segment.frames + 1), tail, segs, frame.packagePosition())
         } else {
 
             // Handle the last segment
@@ -48,9 +56,9 @@ data class FrameData(@JsonProperty("frames") var frames: List<Frame> = listOf())
         }
     }
 
-    fun iterativeBuildUpSegments(streamData: StreamData): MutableList<Segment> {
+    fun iterativeBuildUpSegments(pk: String, sk: String, streamData: StreamData): MutableList<Segment> {
         val frameRate = streamData.frameRate
-        var mainSegment = Segment(frameRate = frameRate)
+        var mainSegment = Segment(frameRate = frameRate, pk = pk, sk = sk + 0.pad())
         val segs = mutableListOf<Segment>()
         var lastFramePosition = 0
         frames.forEach { frame ->
@@ -71,7 +79,7 @@ data class FrameData(@JsonProperty("frames") var frames: List<Frame> = listOf())
                     segs += mainSegment
 
                     // Start a new segment.
-                    mainSegment = Segment(frameRate = frameRate, position = frame.packagePosition())
+                    mainSegment = Segment(frameRate = frameRate, position = frame.packagePosition(), pk = pk, sk = frame.packagePosition().pad())
                 }
             }
 
@@ -179,9 +187,19 @@ data class Frame(
     var width: Int? = null
 ) {
     fun packagePosition(): Int = pktPos?.toInt() ?: 0
-
 }
 
-data class Segment(var frameRate: Float = 0F, var frames: Int = 0, var position: Int = 0, var length: Int = 0) {
+data class Segment(
+    var frameRate: Float = 0F,
+    var frames: Int = 0,
+    var position: Int = 0,
+    var length: Int = 0,
+
+    @DynamoDBHashKey(attributeName = "PK")
+    override var pk: String? = null,
+
+    @DynamoDBRangeKey(attributeName = "SK")
+    override var sk: String? = null,
+) : DynamoDBTable() {
     fun duration(): Float = frames.toFloat() / frameRate
 }
