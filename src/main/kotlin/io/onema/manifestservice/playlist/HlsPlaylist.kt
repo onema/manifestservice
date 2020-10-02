@@ -13,6 +13,10 @@ package io.onema.manifestservice.playlist
 
 import io.onema.manifestservice.domain.Segment
 import io.onema.manifestservice.domain.StreamData
+import io.onema.playlist.hls.PlaylistTypeEnum.VOD
+import io.onema.playlist.hls.master
+import io.onema.playlist.hls.media
+
 
 fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, StreamData>): String {
     return master playlist {
@@ -29,7 +33,7 @@ fun buildMasterPlaylist(videoName: String, renditionMetadata: Map<String, Stream
 fun buildMediaPlaylist(videoName: String, segments: List<Segment>, renditionId: String): String {
     return media playlist {
         version set 5
-        type set PlaylistTypeEnum.VOD
+        type set VOD
         mediaSequence set 0
         targetDuration set 6
 

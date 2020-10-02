@@ -17,7 +17,6 @@ import io.onema.manifestservice.config.OriginConfig
 import io.onema.manifestservice.extensions.*
 import io.onema.manifestservice.playlist.buildMasterPlaylist
 import io.onema.manifestservice.playlist.buildMediaPlaylist
-import io.onema.manifestservice.playlist.master
 import io.onema.manifestservice.service.FileService
 import org.apache.commons.vfs2.FileObject
 import org.slf4j.LoggerFactory

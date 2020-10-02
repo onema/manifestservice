@@ -3,7 +3,7 @@ package io.onema.manifestservice.domain
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.onema.manifestservice.extensions.hex
-import io.onema.manifestservice.playlist.StreamInf
+import io.onema.playlist.hls.StreamInf
 
 enum class H264Profiles(val value: Int) {
     BASELINE(66),
@@ -50,8 +50,8 @@ data class StreamData(
             return "$videoPart,$audioPart"
         }
 
-    val bandwidth: String
-        get() = format?.bitRate ?: ""
+    val bandwidth: Int
+        get() = format?.bitRate?.toInt() ?: 0
 
     val streamInf: StreamInf
         get() = StreamInf()
