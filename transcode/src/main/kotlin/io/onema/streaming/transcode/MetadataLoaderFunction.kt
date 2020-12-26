@@ -74,17 +74,3 @@ class MetadataLoaderFunction : BaseHandler<SQSEvent>() {
         log.info("ALL DONE!")
     }
 }
-
-
-//fun main(args: Array<String>) {
-//
-//    val m = jacksonObjectMapper()
-//    val message = SQSEvent.SQSMessage()
-//    message.body = m.writeValueAsString(MetadataInfo("one-transcoding-output", "/GOPR9006/hls400k.json", "/GOPR9006/hls400k_frames.json", "run-pepper-run"))
-//    val event = SQSEvent()
-//    event.records = listOf(message)
-//
-//    val func = MetadataLoaderFunction()
-//    func.handleRequest(event, null)
-//
-//}
