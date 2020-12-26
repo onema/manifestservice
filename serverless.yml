@@ -14,9 +14,9 @@ provider:
   name: aws
   runtime: java11
   profile: ${opt:profile, 'default'}
-  timeout: 35
+  timeout: 30
   versionFunctions: false
-  memorySize: 1028
+  memorySize: 1024
   stage: dev
   region: us-east-1
   apiGateway:
@@ -24,18 +24,23 @@ provider:
       - "*/*"
   environment:
     LOG_LEVEL: INFO
-    ORIGIN:
-      Fn::Join: [ "", ["s3://", Fn::GetAtt: [ VideosS3Bucket, DomainName ], "/"] ]
     TABLE_NAME:
       Ref: VideoTable
+    QUEUE_ARN:
+      Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
+    PIPELINE_ID:
+      Ref: PipelineId
 
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - s3:*
+        - s3:Get*
+        - s3:Put*
       Resource:
-        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideosS3Bucket, Arn ], "*" ] ]
-        - Fn::GetAtt: [ VideosS3Bucket, Arn ]
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ InputBucket, Arn ], "*" ] ]
+        - Fn::GetAtt: [ InputBucket, Arn ]
+        - Fn::Join: [ "/", [ Fn::GetAtt: [ OutputBucket, Arn ], "*" ] ]
+        - Fn::GetAtt: [ OutputBucket, Arn ]
     - Effect: Allow
       Action:
         - dynamodb:PutItem
@@ -47,17 +52,44 @@ provider:
       Resource:
         - Fn::GetAtt: [ VideoTable, Arn ]
         - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
+    - Effect: Allow
+      Action:
+        - elastictranscoder:Read*
+        - elastictranscoder:List*
+        - elastictranscoder:*Job
+        - elastictranscoder:*Preset
+      Resource:
+        - Fn::Join: ["", ["arn:aws:elastictranscoder:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":pipeline/", Ref: PipelineId ]]
+        - Fn::Join: ["", ["arn:aws:elastictranscoder:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":preset/*" ]]
+    - Effect: Allow
+      Action:
+        - s3:List*
+        - sns:List*
+      Resource:
+        - "*"
+    - Effect: Allow
+      Action:
+        - sqs:ListQueues
+        - sqs:DeleteMessage*
+        - sqs:SendMessage*
+        - sqs:ReceiveMessage
+      Resource:
+        - Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
 
 package:
-  artifact: build/libs/manifestservice-0.0.1-SNAPSHOT-all.jar
+  artifact: transcode/build/libs/transcode-0.0.1-SNAPSHOT-all.jar
 
 functions:
   master:
-#    provisionedConcurrency: 5
-    handler: io.onema.manifestservice.StreamLambdaHandler::handleRequest
+    handler: io.onema.streaming.manifestservice.StreamLambdaHandler::handleRequest
+    environment:
+      ORIGIN:
+        Fn::Join: [ "", ["s3://", Fn::GetAtt: [ OutputBucket, DomainName ], "/"] ]
+    package:
+      artifact: manifest-service/build/libs/manifest-service-0.0.1-SNAPSHOT-all.jar
     events:
       - http:
-          path: "video/{videoName}/master"
+          path: "video/{videoName}/master.m3u8"
           method: get
       - http:
           path: "video/{videoName}/media/{mediaName}"
@@ -65,6 +97,41 @@ functions:
       - http:
           path: "video/{videoName}/media/segment/{segmentName}"
           method: get
+
+  transcodingJob:
+    handler: io.onema.streaming.transcode.TranscodeFunction::handleRequest
+    environment:
+
+    events:
+      - s3:
+          bucket:
+            Ref: InputBucket
+          event: s3:ObjectCreated:*
+          existing: true
+
+  metadataGeneration:
+    handler: io.onema.streaming.transcode.MetadataGenerationFunction::handleRequest
+    timeout: 300
+    memorySize: 2048
+    layers:
+      - arn:aws:lambda:us-east-1:065150860170:layer:ffmpeg:3
+    events:
+      - s3:
+          bucket:
+            Ref: OutputBucket
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .ts
+          existing: true
+
+  metadataLoader:
+    handler: io.onema.streaming.transcode.MetadataLoaderFunction::handleRequest
+    timeout: 300
+    memorySize: 2048
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
 
 resources:
   Resources:
@@ -83,11 +150,27 @@ resources:
           - AttributeName: SK
             KeyType: RANGE
 
-    VideosS3Bucket:
+    TranscodeLoadingQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        VisibilityTimeout: 600
+
+    InputBucket:
+      Type: AWS::S3::Bucket
+    OutputBucket:
       Type: AWS::S3::Bucket
 
+  Parameters:
+    PipelineId:
+      Default: "${opt:pipelineId}"
+      Description: The ID of the Elastic Transcoder pipeline
+      Type: String
   Outputs:
-    VideoBucketSyncUrl:
+    InputBucketName:
       Value:
-        Fn::Join: [ "", ["s3://", Ref: VideosS3Bucket, "/"] ]
-      Description: ARN of S3 bucket for the forwarding email content
+        Ref: InputBucket
+      Description: ARN of S3 bucket where the original videos are uploaded
+    OutputBucketName:
+      Value:
+        Ref: OutputBucket
+      Description: ARN of S3 bucket where the transcoded videos and metadata will be stored
