@@ -32,10 +32,11 @@ abstract class BaseHandler<TEvent, TOut> : RequestHandler<TEvent, TOut> {
         mapper.registerModule(JodaModule())
     }
 
-    override fun handleRequest(event: TEvent, context: Context?): TOut = runBlocking {
+    override fun handleRequest(event: TEvent?, context: Context?): TOut = runBlocking {
+        if(event == null) throw RuntimeException("The event cannot be null")
         log.info(mapper.writeValueAsString(event))
         val result = Either.catch {
-            handleRequestAsync(event,context).await()
+            handleRequestAsync(event, context).await()
         }
         when(result) {
             is Either.Right -> {
