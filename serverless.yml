@@ -99,7 +99,7 @@ functions:
           method: get
 
   transcodingJob:
-    handler: io.onema.streaming.transcode.TranscodeFunction::handleRequest
+    handler: io.onema.streaming.transcode.transcoderstarter.TranscodeStarterFunction::handleRequest
     environment:
 
     events:
@@ -110,7 +110,7 @@ functions:
           existing: true
 
   metadataGeneration:
-    handler: io.onema.streaming.transcode.MetadataGenerationFunction::handleRequest
+    handler: io.onema.streaming.transcode.metadatageneration.MetadataGenerationFunction::handleRequest
     timeout: 300
     memorySize: 2048
     layers:
@@ -125,7 +125,7 @@ functions:
           existing: true
 
   metadataLoader:
-    handler: io.onema.streaming.transcode.MetadataLoaderFunction::handleRequest
+    handler: io.onema.streaming.transcode.metadataloader.MetadataLoaderFunction::handleRequest
     timeout: 300
     memorySize: 2048
     events:
