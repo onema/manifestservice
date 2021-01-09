@@ -26,8 +26,8 @@ provider:
     LOG_LEVEL: INFO
     TABLE_NAME:
       Ref: VideoTable
-    QUEUE_ARN:
-      Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
+    QUEUE_URL:
+      Ref: TranscodeLoadingQueue
     PIPELINE_ID:
       Ref: PipelineId
 
