@@ -4,48 +4,45 @@
  * please view the LICENSE file that was distributed
  * with this source code.
  *
- * copyright (c) 2020, Juan Manuel Torres (http://onema.io)
+ * copyright (c) 2021, Juan Manuel Torres (http://onema.io)
  *
  * @author Juan Manuel Torres <software@onema.io>
  */
 
-package io.onema.streaming.transcode
+package io.onema.streaming.transcode.metadataloader
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig
-import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.SQSEvent
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.onema.streaming.commons.domain.MetadataInfo
 import io.onema.streaming.commons.domain.Segment
 import io.onema.streaming.commons.domain.StreamData
 import io.onema.streaming.commons.extensions.renditionMetadata
 import io.onema.streaming.commons.extensions.renditionSegments
+import io.onema.streaming.transcode.extensions.allRecords
 import org.apache.commons.vfs2.FileObject
 import org.apache.commons.vfs2.FileSystemManager
-import org.apache.commons.vfs2.VFS
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-class MetadataLoaderFunction : BaseHandler<SQSEvent>() {
-    val fsManager: FileSystemManager = VFS.getManager()
-    val tableOverride: DynamoDBMapperConfig.TableNameOverride = DynamoDBMapperConfig.TableNameOverride
-        .withTableNameReplacement(System.getenv("TABLE_NAME"))
-    val dynamoMapper = DynamoDBMapper(
-        AmazonDynamoDBClientBuilder.defaultClient(),
-        DynamoDBMapperConfig.builder()
-            .withTableNameOverride(tableOverride).build()
-    )
+class MetadataLoaderLogic(
+    private val fsManager: FileSystemManager,
+    private val dynamoMapper: DynamoDBMapper,
+    private val mapper: ObjectMapper) {
 
-    override fun handleRequest(event: SQSEvent?, context: Context?) {
+    //--- Fieds ---
+    private val log: Logger = LoggerFactory.getLogger(javaClass)
 
-        log.info(mapper.writeValueAsString(event))
-        event?.records
-            ?.map { r -> mapper.readValue<MetadataInfo>(r.body) }
-            ?.forEach(this::processMessage)
+    //--- Methods ---
+    fun process(event: SQSEvent) {
+        event
+            .allRecords()
+            .map { r -> mapper.readValue<MetadataInfo>(r.body) }
+            .forEach(this::sendMessage)
     }
 
-    fun processMessage(info: MetadataInfo) {
+    private fun sendMessage(info: MetadataInfo) {
         log.info("BUCKET: ${info.bucket}")
         log.info("KEY: ${info.metadataKey}")
         log.info("KEY: ${info.framesKey}")
@@ -71,6 +68,5 @@ class MetadataLoaderFunction : BaseHandler<SQSEvent>() {
         renditionSegments.values.forEach {segments ->
             segments.forEach { dynamoMapper.save(it) }
         }
-        log.info("ALL DONE!")
     }
 }
