@@ -25,18 +25,16 @@ abstract class BaseHandler<TEvent, TOut> : RequestHandler<TEvent, TOut> {
 
     //--- Fields ---
     protected val mapper = jacksonObjectMapper()
-    private val log: Logger = LoggerFactory.getLogger(javaClass)
+    protected val log: Logger = LoggerFactory.getLogger(javaClass)
 
     //--- Constructors ---
     init {
         mapper.registerModule(JodaModule())
     }
 
-    override fun handleRequest(event: TEvent?, context: Context?): TOut = runBlocking {
-        if(event == null) throw RuntimeException("The event cannot be null")
-        log.info(mapper.writeValueAsString(event))
+    fun handle(func: () -> TOut): TOut = runBlocking {
         val result = Either.catch {
-            handleRequestAsync(event, context).await()
+            func()
         }
         when(result) {
             is Either.Right -> {
@@ -46,7 +44,4 @@ abstract class BaseHandler<TEvent, TOut> : RequestHandler<TEvent, TOut> {
             is Either.Left -> throw result.a
         }
     }
-
-    abstract suspend fun handleRequestAsync(event: TEvent, context: Context?): Deferred<TOut>
-
 }

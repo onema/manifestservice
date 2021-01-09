@@ -15,10 +15,6 @@ import com.amazonaws.services.elastictranscoder.AmazonElasticTranscoderClientBui
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.S3Event
 import io.onema.streaming.transcode.BaseHandler
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 
 
 class TranscodeStarterFunction : BaseHandler<S3Event, Unit>() {
@@ -38,9 +34,9 @@ class TranscodeStarterFunction : BaseHandler<S3Event, Unit>() {
     private val amazonElasticTranscoder = AmazonElasticTranscoderClientBuilder.defaultClient()
     private val logic = TranscodeStarterLogic(PIPELINE_ID, amazonElasticTranscoder, presets)
 
-
-    override suspend fun handleRequestAsync(event: S3Event, context: Context?): Deferred<Unit> = GlobalScope.async(Dispatchers.IO) {
+    //--- Methods ---
+    override fun handleRequest(event: S3Event, context: Context?) = handle {
+        log.info(mapper.writeValueAsString(event))
         logic.process(event)
     }
-
 }

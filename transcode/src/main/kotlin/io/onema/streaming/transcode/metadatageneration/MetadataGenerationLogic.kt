@@ -27,7 +27,7 @@ import java.io.File
 import java.util.*
 
 class MetadataGenerationLogic(
-    private val queue: String,
+    private val queueUrl: String,
     private val sqsClient: SqsAsyncClient,
     private val s3Client: S3AsyncClient,
     private val execDir: String,
@@ -35,7 +35,7 @@ class MetadataGenerationLogic(
 ) {
 
     //--- Methods ---
-    suspend fun process(event: S3Event): Unit = IO.fx {
+    fun process(event: S3Event): Unit = IO.fx {
         val record =  event.firstRecord()
         val id = UUID.randomUUID().toString()
         val (metadataFile, framesFile) = files(record, id)
@@ -95,7 +95,7 @@ class MetadataGenerationLogic(
     private fun sendMessage(info: MetadataInfo): IO<SendMessageResponse> = IO.fx {
         log.info("SENDING SQS MESSAGE")
         val request = SendMessageRequest.builder()
-            .queueUrl(queue)
+            .queueUrl(queueUrl)
             .messageBody(mapper.writeValueAsString(info))
             .build()
         sqsClient.sendMessage(request).get()

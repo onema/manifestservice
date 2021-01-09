@@ -17,10 +17,6 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperConfig
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.SQSEvent
 import io.onema.streaming.transcode.BaseHandler
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import org.apache.commons.vfs2.FileSystemManager
 import org.apache.commons.vfs2.VFS
 
@@ -38,7 +34,8 @@ class MetadataLoaderFunction : BaseHandler<SQSEvent, Unit>() {
     )
     private val logic = MetadataLoaderLogic(fsManager, dynamoMapper, mapper)
 
-    override suspend fun handleRequestAsync(event: SQSEvent, context: Context?): Deferred<Unit> = GlobalScope.async(Dispatchers.IO) {
+    override fun handleRequest(event: SQSEvent, context: Context?) = handle {
+        log.info(mapper.writeValueAsString(event))
         logic.process(event)
     }
 }
