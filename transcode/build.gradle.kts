@@ -13,7 +13,7 @@ repositories {
 
 dependencies {
     val awsSdk1Version = "1.11.923"
-    val awsSdk2Version = "2.15.53"
+    val awsSdk2Version = "2.15.66"
     val arrowVersion = "0.11.0"
 
     implementation(kotlin("stdlib"))
@@ -30,10 +30,10 @@ dependencies {
     // AWS
     implementation("com.amazonaws:aws-lambda-java-events:3.2.0")
     implementation("com.amazonaws:aws-lambda-java-core:1.2.1")
-    implementation("com.amazonaws:aws-java-sdk-elastictranscoder:$awsSdk1Version")
     implementation("com.amazonaws:aws-java-sdk-dynamodb:$awsSdk1Version")
     implementation("software.amazon.awssdk:s3:$awsSdk2Version")
     implementation("software.amazon.awssdk:sqs:$awsSdk2Version")
+    implementation("software.amazon.awssdk:mediaconvert:$awsSdk2Version")
 
     // Logging
     implementation("io.symphonia:lambda-logging:1.0.3")

@@ -11,28 +11,33 @@
 
 package io.onema.streaming.transcode.transcoderstarter
 
-import com.amazonaws.services.elastictranscoder.AmazonElasticTranscoderClientBuilder
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.events.S3Event
 import io.onema.streaming.transcode.BaseHandler
+import software.amazon.awssdk.services.mediaconvert.MediaConvertClient
+import software.amazon.awssdk.services.mediaconvert.model.DescribeEndpointsRequest
+import java.net.URI
 
 
 class TranscodeStarterFunction : BaseHandler<S3Event, Unit>() {
 
     //--- Constants ---
-    private val presets = mapOf(
-        "hls400k" to "1351620000001-200050",
-        "hls600k" to "1351620000001-200040",
-        "hls1000k" to "1351620000001-200030",
-        "hls1500k" to "1351620000001-200020",
-        "hls2000k" to "1351620000001-200010",
-    )
-
-    private val PIPELINE_ID = System.getenv("PIPELINE_ID")
+    private val JOB_TEMPLATE_NAME = System.getenv("JOB_TEMPLATE_NAME")
+    private val OUTPUT_BUCKET_NAME = System.getenv("OUTPUT_BUCKET_NAME")
+    private val MEDIA_CONVERT_ROLE = System.getenv("MEDIA_CONVERT_ROLE")
 
     //--- Fields ---
-    private val amazonElasticTranscoder = AmazonElasticTranscoderClientBuilder.defaultClient()
-    private val logic = TranscodeStarterLogic(PIPELINE_ID, amazonElasticTranscoder, presets)
+    // Get the account API endpoint
+    val endpoint = MediaConvertClient
+        .builder()
+        .build()
+        .describeEndpoints(DescribeEndpointsRequest.builder().build())
+        .endpoints()[0].url()
+    private val mediaConverter = MediaConvertClient
+        .builder()
+        .endpointOverride(URI.create(endpoint))
+        .build()
+    private val logic = TranscodeStarterLogic(JOB_TEMPLATE_NAME, OUTPUT_BUCKET_NAME, MEDIA_CONVERT_ROLE, mediaConverter)
 
     //--- Methods ---
     override fun handleRequest(event: S3Event, context: Context?) = handle {
