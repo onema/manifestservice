@@ -3,7 +3,7 @@
 This repo is based on an example written by [@bahern](https://github.com/bahern).
 
 ## Overview
-Simple video transcoding pipeline and streaming service build on top of Kolin, Spring boot, AWS Lambda, AWS Elastic Transcoder, API Gateway, and more.
+Simple video transcoding pipeline and streaming service build on top of Kolin, Spring boot, AWS Lambda, Elemental MediaConvert, API Gateway, and more.
 
 ![Architectural Diagram](img/architecture.png)
 
