@@ -11,6 +11,8 @@
 
 package io.onema.streaming.transcode.metadataloader
 
+import arrow.fx.IO
+import arrow.fx.extensions.fx
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper
 import com.amazonaws.services.lambda.runtime.events.SQSEvent
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -39,10 +41,10 @@ class MetadataLoaderLogic(
         event
             .allRecords()
             .map { r -> mapper.readValue<MetadataInfo>(r.body) }
-            .forEach(this::sendMessage)
+            .map { sendMessage(it).unsafeRunSync() }
     }
 
-    private fun sendMessage(info: MetadataInfo) {
+    private fun sendMessage(info: MetadataInfo): IO<Unit> {
         log.info("BUCKET: ${info.bucket}")
         log.info("KEY: ${info.metadataKey}")
         log.info("KEY: ${info.framesKey}")
@@ -50,23 +52,29 @@ class MetadataLoaderLogic(
         log.info("FRAMES ORIGIN ${info.frameS3Origin()}")
         log.info("VIDEO ORIGIN ${info.videoS3Origin()}")
 
-        val metadata: FileObject = fsManager.resolveFile(info.metadataS3Origin())
-        val frame: FileObject = fsManager.resolveFile(info.frameS3Origin())
-        val video: FileObject = fsManager.resolveFile(info.videoS3Origin())
+        return IO.fx {
+            val metadata = fsManager.resolveFileIO(info.metadataS3Origin()).bind()
+            val frame = fsManager.resolveFileIO(info.frameS3Origin()).bind()
+            val video = fsManager.resolveFileIO(info.videoS3Origin()).bind()
 
-        val files: List<FileObject> = listOf(metadata, frame, video)
-        val renditionMetadata: Map<String, StreamData> = files.renditionMetadata(info.videoName)
-        val renditionSegments: Map<String, List<Segment>> = files.renditionSegments(renditionMetadata)
+            val files: List<FileObject> = listOf(metadata, frame, video)
+            val renditionMetadata: Map<String, StreamData> = files.renditionMetadata(info.videoName)
+            val renditionSegments: Map<String, List<Segment>> = files.renditionSegments(renditionMetadata)
 
-        log.info("SAVING STREAM DATA")
-        renditionMetadata.values.forEach { streamData ->
-            dynamoMapper.save(streamData.format)
-            streamData.streams?.forEach {dynamoMapper.save(it)}
+            log.info("SAVING STREAM DATA")
+            renditionMetadata.values.forEach { streamData ->
+                dynamoMapper.save(streamData.format)
+                streamData.streams?.forEach {dynamoMapper.save(it)}
+            }
+
+            log.info("SAVING SEGMENTS")
+            renditionSegments.values.forEach {segments ->
+                segments.forEach { dynamoMapper.save(it) }
+            }
         }
+    }
 
-        log.info("SAVING SEGMENTS")
-        renditionSegments.values.forEach {segments ->
-            segments.forEach { dynamoMapper.save(it) }
-        }
+    fun FileSystemManager.resolveFileIO(uri: String): IO<FileObject> = IO.fx{
+        resolveFile(uri)
     }
 }

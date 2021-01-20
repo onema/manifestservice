@@ -24,7 +24,8 @@ import java.io.File
 
 val log: Logger = LoggerFactory.getLogger(S3EventNotificationRecord::class.java)
 
-fun S3EventNotificationRecord.origin(): String = "s3://${bucket()}.s3.amazonaws.com${path()}"
+fun S3EventNotificationRecord.origin(): String = "s3://${bucket()}${path()}"
+fun S3EventNotificationRecord.keyOrigin(): String = "s3://${bucket()}/${key()}"
 fun S3EventNotificationRecord.bucket(): String = s3.bucket.name
 fun S3EventNotificationRecord.key(): String = s3.`object`.urlDecodedKey
 fun S3EventNotificationRecord.path(): String = File(s3.`object`.urlDecodedKey).parent

@@ -1,0 +1,57 @@
+---
+TimecodeConfig:
+  Source: ZEROBASED
+OutputGroups:
+  - CustomName: testing-template
+    Name: Apple HLS
+    Outputs:
+      - Preset: System-Avc_16x9_270p_14_99fps_400kbps
+        NameModifier: /480x270
+      - Preset: System-Avc_16x9_360p_29_97fps_1200kbps
+        NameModifier: /640x360
+      - Preset: System-Avc_16x9_540p_29_97fps_3500kbps
+        NameModifier: /960x540
+      - Preset: System-Avc_16x9_720p_29_97fps_3500kbps
+        NameModifier: /1280x720
+      - Preset: System-Avc_16x9_1080p_29_97fps_8500kbps
+        NameModifier: /1920x1080
+      - Preset: System-Ott_Hls_Ts_Avc_Aac_4x3_1600x1200p_30Hz_8.5Mbps
+        NameModifier: /1600x1200
+    OutputGroupSettings:
+      Type: HLS_GROUP_SETTINGS
+      HlsGroupSettings:
+        ManifestDurationFormat: INTEGER
+        SegmentLength: 2
+        TimedMetadataId3Period: 10
+        CaptionLanguageSetting: OMIT
+        TimedMetadataId3Frame: PRIV
+        CodecSpecification: RFC_4281
+        OutputSelection: MANIFESTS_AND_SEGMENTS
+        ProgramDateTimePeriod: 600
+        MinSegmentLength: 0
+        MinFinalSegmentLength: 0
+        DirectoryStructure: SINGLE_DIRECTORY
+        ProgramDateTime: EXCLUDE
+        SegmentControl: SINGLE_FILE
+        ManifestCompression: NONE
+        ClientCache: ENABLED
+        AudioOnlyHeader: INCLUDE
+        StreamInfResolution: INCLUDE
+AdAvailOffset: 0
+Inputs:
+  - AudioSelectors:
+      Audio Selector 1:
+        Offset: 0
+        DefaultSelection: DEFAULT
+        ProgramSelection: 1
+    VideoSelector:
+      ColorSpace: FOLLOW
+      Rotate: DEGREE_0
+      AlphaBehavior: DISCARD
+    FilterEnable: AUTO
+    PsiControl: USE_PSI
+    FilterStrength: 0
+    DeblockFilter: DISABLED
+    DenoiseFilter: DISABLED
+    InputScanType: AUTO
+    TimecodeSource: ZEROBASED

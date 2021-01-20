@@ -4,7 +4,7 @@
 # please view the LICENSE file that was distributed
 # with this source code.
 #
-# copyright (c) 2018, Juan Manuel Torres (http://onema.io)
+# copyright (c) 2021, Juan Manuel Torres (http://onema.io)
 #
 # @author Juan Manuel Torres <software@onema.io>
 #
@@ -28,8 +28,6 @@ provider:
       Ref: VideoTable
     QUEUE_URL:
       Ref: TranscodeLoadingQueue
-    PIPELINE_ID:
-      Ref: PipelineId
 
   iamRoleStatements:
     - Effect: Allow
@@ -54,15 +52,6 @@ provider:
         - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
     - Effect: Allow
       Action:
-        - elastictranscoder:Read*
-        - elastictranscoder:List*
-        - elastictranscoder:*Job
-        - elastictranscoder:*Preset
-      Resource:
-        - Fn::Join: ["", ["arn:aws:elastictranscoder:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":pipeline/", Ref: PipelineId ]]
-        - Fn::Join: ["", ["arn:aws:elastictranscoder:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":preset/*" ]]
-    - Effect: Allow
-      Action:
         - s3:List*
         - sns:List*
       Resource:
@@ -75,6 +64,32 @@ provider:
         - sqs:ReceiveMessage
       Resource:
         - Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
+    - Effect: Allow
+      Action:
+        - mediaconvert:GetJob
+        - mediaconvert:ListTagsForResource
+        - mediaconvert:GetJobTemplate
+        - mediaconvert:UntagResource
+        - mediaconvert:TagResource
+        - mediaconvert:CreateJob
+      Resource:
+        - Fn::GetAtt: [StreamingServiceMediaConvert, Arn]
+        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":jobs/*"] ]
+        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":queues/*"] ]
+        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":presets/allow*"] ]
+    - Effect: Allow
+      Action:
+        - mediaconvert:ListQueues
+        - mediaconvert:DescribeEndpoints
+        - mediaconvert:ListPresets
+        - mediaconvert:ListJobTemplates
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - iam:PassRole
+        - iam:ListRoles
+      "Resource":
+        - "arn:aws:iam::*:role/*"
 
 package:
   artifact: transcode/build/libs/transcode-0.0.1-SNAPSHOT-all.jar
@@ -101,6 +116,12 @@ functions:
   transcodingJob:
     handler: io.onema.streaming.transcode.transcoderstarter.TranscodeStarterFunction::handleRequest
     environment:
+      JOB_TEMPLATE_NAME:
+        Ref: StreamingServiceMediaConvert
+      OUTPUT_BUCKET_NAME:
+        Ref: OutputBucket
+      MEDIA_CONVERT_ROLE:
+        Fn::GetAtt : [MediaConvertRole, Arn]
 
     events:
       - s3:
@@ -160,11 +181,30 @@ resources:
     OutputBucket:
       Type: AWS::S3::Bucket
 
-  Parameters:
-    PipelineId:
-      Default: "${opt:pipelineId}"
-      Description: The ID of the Elastic Transcoder pipeline
-      Type: String
+    StreamingServiceMediaConvert:
+      Type: AWS::MediaConvert::JobTemplate
+      Properties:
+        Description: Streaming service media convert for HLS
+        SettingsJson: ${file(media-convert-settings.yml)}
+        StatusUpdateInterval: SECONDS_30
+
+    MediaConvertRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - mediaconvert.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Path: /
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
+
   Outputs:
     InputBucketName:
       Value:

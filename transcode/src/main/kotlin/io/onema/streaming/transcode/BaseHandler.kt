@@ -12,11 +12,10 @@
 package io.onema.streaming.transcode
 
 import arrow.core.Either
-import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import kotlinx.coroutines.*
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -32,11 +31,8 @@ abstract class BaseHandler<TEvent, TOut> : RequestHandler<TEvent, TOut> {
         mapper.registerModule(JodaModule())
     }
 
-    fun handle(func: () -> TOut): TOut = runBlocking {
-        val result = Either.catch {
-            func()
-        }
-        when(result) {
+    fun handle(lambdaFunction: () -> TOut): TOut = runBlocking {
+        when(val result = Either.catch { lambdaFunction() }) {
             is Either.Right -> {
                 log.info("ALL DONE!")
                 result.b
