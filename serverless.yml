@@ -96,6 +96,7 @@ package:
 
 functions:
   master:
+    memorySize: 8192
     handler: io.onema.streaming.manifestservice.StreamLambdaHandler::handleRequest
     environment:
       ORIGIN:
