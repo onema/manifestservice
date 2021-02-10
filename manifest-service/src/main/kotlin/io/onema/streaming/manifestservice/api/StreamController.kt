@@ -56,9 +56,11 @@ class StreamController(
         val renditionMetadata = mapper.renditionMetadata(videoName)
 
         return if (renditionMetadata.isEmpty()) {
+            log.info("VIDEO NOT FOUND")
             ResponseEntity.notFound().build()
         } else {
             val body = buildMasterPlaylist(videoName, renditionMetadata)
+            log.info("VIDEO BODY: \n $body")
             ResponseEntity.ok().header(HttpHeaders.CONTENT_TYPE, mimeTypeM3U8).body(body)
         }
     }
