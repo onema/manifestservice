@@ -1,19 +1,10 @@
-#
-# This file is part of the ONEMA onema Package.
-# For the full copyright and license information,
-# please view the LICENSE file that was distributed
-# with this source code.
-#
-# copyright (c) 2021, Juan Manuel Torres (http://onema.io)
-#
-# @author Juan Manuel Torres <software@onema.io>
-#
 service: manifest-service
+frameworkVersion: '2'
 
 provider:
   name: aws
   runtime: java11
-  profile: ${opt:profile, 'default'}
+  profile: ${opt:aws-profile, 'default'}
   timeout: 30
   versionFunctions: false
   memorySize: 1024
@@ -28,68 +19,70 @@ provider:
       Ref: VideoTable
     QUEUE_URL:
       Ref: TranscodeLoadingQueue
-
   iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - s3:Get*
-        - s3:Put*
-      Resource:
-        - Fn::Join: [ "/", [ Fn::GetAtt: [ InputBucket, Arn ], "*" ] ]
-        - Fn::GetAtt: [ InputBucket, Arn ]
-        - Fn::Join: [ "/", [ Fn::GetAtt: [ OutputBucket, Arn ], "*" ] ]
-        - Fn::GetAtt: [ OutputBucket, Arn ]
-    - Effect: Allow
-      Action:
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:GetItem
-        - dynamodb:DeleteItem
-        - dynamodb:Query
-        - dynamodb:Scan
-      Resource:
-        - Fn::GetAtt: [ VideoTable, Arn ]
-        - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
-    - Effect: Allow
-      Action:
-        - s3:List*
-        - sns:List*
-      Resource:
-        - "*"
-    - Effect: Allow
-      Action:
-        - sqs:ListQueues
-        - sqs:DeleteMessage*
-        - sqs:SendMessage*
-        - sqs:ReceiveMessage
-      Resource:
-        - Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
-    - Effect: Allow
-      Action:
-        - mediaconvert:GetJob
-        - mediaconvert:ListTagsForResource
-        - mediaconvert:GetJobTemplate
-        - mediaconvert:UntagResource
-        - mediaconvert:TagResource
-        - mediaconvert:CreateJob
-      Resource:
-        - Fn::GetAtt: [StreamingServiceMediaConvert, Arn]
-        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":jobs/*"] ]
-        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":queues/*"] ]
-        - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":presets/allow*"] ]
-    - Effect: Allow
-      Action:
-        - mediaconvert:ListQueues
-        - mediaconvert:DescribeEndpoints
-        - mediaconvert:ListPresets
-        - mediaconvert:ListJobTemplates
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - iam:PassRole
-        - iam:ListRoles
-      "Resource":
-        - "arn:aws:iam::*:role/*"
+#  iam:
+#    role:
+#      statements:
+        - Effect: Allow
+          Action:
+            - s3:Get*
+            - s3:Put*
+          Resource:
+            - Fn::Join: [ "/", [ Fn::GetAtt: [ InputBucket, Arn ], "*" ] ]
+            - Fn::GetAtt: [ InputBucket, Arn ]
+            - Fn::Join: [ "/", [ Fn::GetAtt: [ OutputBucket, Arn ], "*" ] ]
+            - Fn::GetAtt: [ OutputBucket, Arn ]
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - Fn::GetAtt: [ VideoTable, Arn ]
+            - Fn::Join: [ "/", [ Fn::GetAtt: [ VideoTable, Arn ], "index", "*" ] ]
+        - Effect: Allow
+          Action:
+            - s3:List*
+            - sns:List*
+          Resource:
+            - "*"
+        - Effect: Allow
+          Action:
+            - sqs:ListQueues
+            - sqs:DeleteMessage*
+            - sqs:SendMessage*
+            - sqs:ReceiveMessage
+          Resource:
+            - Fn::GetAtt: [ TranscodeLoadingQueue, Arn ]
+        - Effect: Allow
+          Action:
+            - mediaconvert:GetJob
+            - mediaconvert:ListTagsForResource
+            - mediaconvert:GetJobTemplate
+            - mediaconvert:UntagResource
+            - mediaconvert:TagResource
+            - mediaconvert:CreateJob
+          Resource:
+            - Fn::GetAtt: [StreamingServiceMediaConvert, Arn]
+            - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":jobs/*"] ]
+            - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":queues/*"] ]
+            - Fn::Join: ["", ["arn:aws:mediaconvert:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":presets/allow*"] ]
+        - Effect: Allow
+          Action:
+            - mediaconvert:ListQueues
+            - mediaconvert:DescribeEndpoints
+            - mediaconvert:ListPresets
+            - mediaconvert:ListJobTemplates
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - iam:PassRole
+            - iam:ListRoles
+          "Resource":
+            - "arn:aws:iam::*:role/*"
 
 package:
   artifact: transcode/build/libs/transcode-0.0.1-SNAPSHOT-all.jar
